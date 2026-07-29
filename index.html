@@ -7,10 +7,9 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       margin: 0;
       padding: 15px;
-      /* 粉紅玫瑰浪漫背景 */
       background: linear-gradient(rgba(255, 240, 245, 0.7), rgba(255, 228, 225, 0.7)),
                   url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1000&q=80') center/cover fixed;
       color: #4a3e3d;
@@ -53,8 +52,6 @@
       background-color: #fffafc;
       font-size: 1rem;
     }
-
-    input:focus, select:focus { border-color: #d65a8a; }
 
     .checkbox-group {
       display: flex;
@@ -114,6 +111,37 @@
       border-radius: 10px;
       margin-bottom: 10px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      position: relative;
+    }
+
+    .memo-item.expired {
+      border-left-color: #a0a0a0;
+      background: #f9f9f9;
+      opacity: 0.7;
+    }
+
+    .delete-btn {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .filter-btn {
+      background: #ffe3ec;
+      border: 1px solid #f2b6c6;
+      color: #8b4360;
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      margin-bottom: 10px;
     }
   </style>
 </head>
@@ -168,31 +196,80 @@
   </form>
 
   <div class="memo-list">
-    <h3 style="color: #8b4360; font-size: 1.1rem; margin-top: 0;">📅 已儲存的記事</h3>
-    <div id="memoContainer"></div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h3 style="color: #8b4360; font-size: 1.1rem; margin: 0;">📅 預計發生的記事 (由近到遠)</h3>
+      <button class="filter-btn" onclick="clearExpired()">🗑️ 清空過期</button>
+    </div>
+    <div id="memoContainer" style="margin-top: 10px;"></div>
   </div>
 </div>
 
 <script>
-  // 載入與新增記事邏輯
+  // 播放音樂提醒聲 (約 5 秒長的響鈴聲)
+  function playAlarmSound() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const playTone = (freq, startTime, duration) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.1, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+
+      // 播放一段連續優美的提醒音樂
+      const now = audioCtx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25];
+      notes.forEach((freq, index) => {
+        playTone(freq, now + (index * 0.4), 0.35);
+        playTone(freq * 1.2, now + (index * 0.4) + 0.1, 0.35);
+      });
+    } catch(e) {
+      console.log('無法播放聲音:', e);
+    }
+  }
+
   function loadMemos() {
-    const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
+    let memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
     const container = document.getElementById('memoContainer');
+    const now = new Date();
+
     if (memos.length === 0) {
       container.innerHTML = '<p style="color: #a07080; font-size: 0.9rem; text-align: center;">尚無記事項目</p>';
       return;
     }
-    container.innerHTML = memos.map((m, index) => `
-      <div class="memo-item">
-        <div style="font-weight: bold; color: #d65a8a;">${m.content}</div>
-        <div style="font-size: 0.85rem; color: #666; margin-top: 4px;">
-          📍 地點: ${m.location || '無'}<br>
-          ⏰ 時間: ${m.date} ${m.time}<br>
-          🎵 提醒: ${m.reminds.join(', ') || '無'}<br>
-          🔁 週期: ${m.repeat}
+
+    // 核心邏輯：依時間進行「由近到遠」排序 (時間最先發生的置頂)
+    memos.sort((a, b) => {
+      const timeA = new Date(`${a.date}T${a.time}`);
+      const timeB = new Date(`${b.date}T${b.time}`);
+      return timeA - timeB;
+    });
+
+    container.innerHTML = memos.map((m, index) => {
+      const eventTime = new Date(`${m.date}T${m.time}`);
+      const isExpired = m.repeat === '不重複' && eventTime < now;
+
+      return `
+        <div class="memo-item ${isExpired ? 'expired' : ''}">
+          <button class="delete-btn" onclick="deleteMemo(${index})">刪除</button>
+          <div style="font-weight: bold; color: ${isExpired ? '#777' : '#d65a8a'};">
+            ${isExpired ? '<span style="color:#ff4d4d;">[已過期] </span>' : '⏰ '}${m.content}
+          </div>
+          <div style="font-size: 0.85rem; color: #666; margin-top: 4px;">
+            📍 地點: ${m.location || '無'}<br>
+            📅 日期時間: <b>${m.date} ${m.time}</b><br>
+            🎵 提醒: ${m.reminds.join(', ') || '無'}<br>
+            🔁 週期: ${m.repeat}
+          </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   function addMemo() {
@@ -209,31 +286,65 @@
 
     const reminds = Array.from(document.querySelectorAll('input[name="remind"]:checked')).map(cb => cb.value);
 
-    const newMemo = { content, date, time, location, reminds, repeat };
+    const newMemo = { content, date, time, location, reminds, repeat, alerted: false };
     const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
-    memos.unshift(newMemo);
+    memos.push(newMemo);
     localStorage.setItem('roseMemos', JSON.stringify(memos));
 
-    // 清空表單並重新整理列表
     document.getElementById('content').value = '';
     document.getElementById('location').value = '';
     loadMemos();
-    alert('🌹 記事已成功儲存並設定音樂提醒！');
+    
+    // 試聽提醒音樂
+    playAlarmSound();
+    alert('🌹 記事已成功儲存並已依時間排序！');
   }
 
-  function shareApp() {
-    if (navigator.share) {
-      navigator.share({
-        title: '玫瑰花語記事簿',
-        text: '這是一款漂亮的粉紅玫瑰記事簿 App，推薦給你使用！',
-        url: window.location.href
-      });
-    } else {
-      alert('已複製分享資訊！您可以直接將此 App 打包檔（APK）發送給其他人獨立安裝使用。');
+  function deleteMemo(index) {
+    if (confirm('確定要刪除這筆記事嗎？')) {
+      const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
+      // 重新按排序後的順序刪除
+      memos.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
+      memos.splice(index, 1);
+      localStorage.setItem('roseMemos', JSON.stringify(memos));
+      loadMemos();
     }
   }
 
-  // 初始化預設日期為今天
+  function clearExpired() {
+    const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
+    const now = new Date();
+    const activeMemos = memos.filter(m => {
+      const eventTime = new Date(`${m.date}T${m.time}`);
+      return m.repeat !== '不重複' || eventTime >= now;
+    });
+
+    localStorage.setItem('roseMemos', JSON.stringify(activeMemos));
+    loadMemos();
+    alert('已清空所有過期記事！');
+  }
+
+  // 自動背景檢查是否到達提醒時間
+  setInterval(() => {
+    const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
+    const now = new Date();
+
+    memos.forEach(m => {
+      const eventTime = new Date(`${m.date}T${m.time}`);
+      // 如果時間到了，且還沒提醒過
+      if (Math.abs(now - eventTime) < 30000 && !m.alerted) {
+        playAlarmSound();
+        alert(`⏰【提醒時間到】\n內容：${m.content}\n地點：${m.location || '無'}`);
+        m.alerted = true;
+        localStorage.setItem('roseMemos', JSON.stringify(memos));
+      }
+    });
+  }, 10000);
+
+  function shareApp() {
+    alert('您可以直接複製專屬網址，發送給其他人獨立使用！');
+  }
+
   document.getElementById('date').valueAsDate = new Date();
   loadMemos();
 </script>
