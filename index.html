@@ -143,6 +143,15 @@
       cursor: pointer;
       margin-bottom: 10px;
     }
+
+    .repeat-tag {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      margin-left: 5px;
+    }
   </style>
 </head>
 <body>
@@ -153,7 +162,7 @@
   <form id="memoForm">
     <div class="form-group">
       <label>📝 記事內容</label>
-      <input type="text" id="content" placeholder="例如：約會、紀念日、重要會議..." required>
+      <input type="text" id="content" placeholder="例如：約會、紀念日、繳費..." required>
     </div>
 
     <div class="form-group" style="display: flex; gap: 10px;">
@@ -196,7 +205,7 @@
   </form>
 
   <div class="memo-list">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; justify-content: space-between; align- items: center;">
       <h3 style="color: #8b4360; font-size: 1.1rem; margin: 0;">📅 預計發生的記事 (由近到遠)</h3>
       <button class="filter-btn" onclick="clearExpired()">🗑️ 清空過期</button>
     </div>
@@ -205,7 +214,7 @@
 </div>
 
 <script>
-  // 播放音樂提醒聲 (約 5 秒長的響鈴聲)
+  // 音樂提醒聲音
   function playAlarmSound() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -222,7 +231,6 @@
         osc.stop(startTime + duration);
       };
 
-      // 播放一段連續優美的提醒音樂
       const now = audioCtx.currentTime;
       const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25];
       notes.forEach((freq, index) => {
@@ -234,7 +242,52 @@
     }
   }
 
+  // 自動推算下一期的日期 (格式為 YYYY-MM-DD)
+  function getNextDate(dateStr, repeatType) {
+    const d = new Date(dateStr + 'T00:00:00');
+    if (repeatType === '一個月') {
+      d.setMonth(d.getMonth() + 1);
+    } else if (repeatType === '三個月') {
+      d.setMonth(d.getMonth() + 3);
+    } else if (repeatType === '一年') {
+      d.setFullYear(d.getFullYear() + 1);
+    }
+    
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // 檢查並更新過期的定期事件
+  function updateRecurringMemos() {
+    let memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
+    const now = new Date();
+    let hasUpdated = false;
+
+    memos = memos.map(m => {
+      if (m.repeat !== '不重複') {
+        let eventTime = new Date(`${m.date}T${m.time}`);
+        // 若定期事件的時間已經過去，自動推算直到日期大於現在
+        while (eventTime < now) {
+          m.date = getNextDate(m.date, m.repeat);
+          m.alerted = false; // 重設提醒狀態
+          eventTime = new Date(`${m.date}T${m.time}`);
+          hasUpdated = true;
+        }
+      }
+      return m;
+    });
+
+    if (hasUpdated) {
+      localStorage.setItem('roseMemos', JSON.stringify(memos));
+    }
+  }
+
   function loadMemos() {
+    // 載入前先執行定期事件的自動更正
+    updateRecurringMemos();
+
     let memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
     const container = document.getElementById('memoContainer');
     const now = new Date();
@@ -244,7 +297,7 @@
       return;
     }
 
-    // 核心邏輯：依時間進行「由近到遠」排序 (時間最先發生的置頂)
+    // 由近到遠排序 (時間最先發生的置頂)
     memos.sort((a, b) => {
       const timeA = new Date(`${a.date}T${a.time}`);
       const timeB = new Date(`${b.date}T${b.time}`);
@@ -259,11 +312,13 @@
         <div class="memo-item ${isExpired ? 'expired' : ''}">
           <button class="delete-btn" onclick="deleteMemo(${index})">刪除</button>
           <div style="font-weight: bold; color: ${isExpired ? '#777' : '#d65a8a'};">
-            ${isExpired ? '<span style="color:#ff4d4d;">[已過期] </span>' : '⏰ '}${m.content}
+            ${isExpired ? '<span style="color:#ff4d4d;">[已過期] </span>' : '⏰ '}
+            ${m.content}
+            ${m.repeat !== '不重複' ? `<span class="repeat-tag">🔁 每${m.repeat}自動更新</span>` : ''}
           </div>
           <div style="font-size: 0.85rem; color: #666; margin-top: 4px;">
             📍 地點: ${m.location || '無'}<br>
-            📅 日期時間: <b>${m.date} ${m.time}</b><br>
+            📅 下次時間: <b>${m.date} ${m.time}</b><br>
             🎵 提醒: ${m.reminds.join(', ') || '無'}<br>
             🔁 週期: ${m.repeat}
           </div>
@@ -295,15 +350,13 @@
     document.getElementById('location').value = '';
     loadMemos();
     
-    // 試聽提醒音樂
     playAlarmSound();
-    alert('🌹 記事已成功儲存並已依時間排序！');
+    alert('🌹 記事已成功儲存！若有設定週期，到期後會自動推算下一期。');
   }
 
   function deleteMemo(index) {
     if (confirm('確定要刪除這筆記事嗎？')) {
-      const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
-      // 重新按排序後的順序刪除
+      let memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
       memos.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
       memos.splice(index, 1);
       localStorage.setItem('roseMemos', JSON.stringify(memos));
@@ -312,7 +365,7 @@
   }
 
   function clearExpired() {
-    const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
+    let memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
     const now = new Date();
     const activeMemos = memos.filter(m => {
       const eventTime = new Date(`${m.date}T${m.time}`);
@@ -321,17 +374,18 @@
 
     localStorage.setItem('roseMemos', JSON.stringify(activeMemos));
     loadMemos();
-    alert('已清空所有過期記事！');
+    alert('已清空所有過期的單次記事！');
   }
 
-  // 自動背景檢查是否到達提醒時間
+  // 自動背景檢查
   setInterval(() => {
+    loadMemos(); // 隨時更新並自動跳到下一期
+
     const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
     const now = new Date();
 
     memos.forEach(m => {
       const eventTime = new Date(`${m.date}T${m.time}`);
-      // 如果時間到了，且還沒提醒過
       if (Math.abs(now - eventTime) < 30000 && !m.alerted) {
         playAlarmSound();
         alert(`⏰【提醒時間到】\n內容：${m.content}\n地點：${m.location || '無'}`);
@@ -342,7 +396,7 @@
   }, 10000);
 
   function shareApp() {
-    alert('您可以直接複製專屬網址，發送給其他人獨立使用！');
+    alert('您可以複製專屬網址發送給其他人獨立使用！');
   }
 
   document.getElementById('date').valueAsDate = new Date();
