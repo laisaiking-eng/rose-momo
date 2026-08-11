@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>玫瑰雲端記事簿</title>
-    <!-- 引入 Firebase JS SDK -->
+    <!-- 引入 Firebase JS SDK (Compat 版本) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
@@ -28,7 +28,7 @@
 <div class="container">
     <h1>🌹 玫瑰雲端記事簿 🌹</h1>
 
-    <div id="auth-status">載入中...</div>
+    <div id="auth-status">請點擊下方登入</div>
 
     <div id="login-area">
         <p>請登入您的 Google 帳號以開始使用。</p>
@@ -42,7 +42,7 @@
 </div>
 
 <script>
-    // 你的 Firebase 雲端金鑰設定
+    // Firebase 金鑰設定
     const firebaseConfig = {
         apiKey: "AIzaSyCqYrm1V9GeMiP7MJnXDCbuFWJ5BYM2DeE",
         authDomain: "my-rose-notes.firebaseapp.com",
@@ -69,7 +69,7 @@
     // 監聽登入狀態
     auth.onAuthStateChanged(user => {
         if (user) {
-            authStatusEl.innerHTML = `歡迎，<b>${user.displayName || '使用者'}</b> (Google 登入中)`;
+            authStatusEl.innerHTML = `歡迎，<b>${user.displayName || '使用者'}</b>`;
             loginAreaEl.style.display = 'none';
             notesAreaEl.style.display = 'block';
 
@@ -94,10 +94,12 @@
         }
     });
 
-    // 登入按鈕
+    // 點擊登入（改用 Popup 視窗與錯誤捕捉）
     loginButton.addEventListener('click', () => {
         const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithRedirect(provider);
+        auth.signInWithPopup(provider).catch(error => {
+            alert("登入提示：" + error.message);
+        });
     });
 
     // 登出按鈕
@@ -109,4 +111,4 @@
 </script>
 
 </body>
-</html>1
+</html>
