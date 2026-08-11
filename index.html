@@ -6,21 +6,17 @@
     <title>玫瑰雲端記事簿</title>
     <!-- 引入 Firebase JS SDK (Compat 版本) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <link rel="icon" type="image/png" href="icon.png">
     <style>
         body { font-family: sans-serif; background-color: #ffe0f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
         .container { background-color: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
-        h1 { color: #ff6699; font-size: 1.5em; }
-        #auth-status { font-size: 0.9em; margin-bottom: 10px; color: #555; }
-        #notes-area { display: none; }
-        textarea { width: 100%; height: 200px; border: 1px solid #ffccdd; border-radius: 8px; padding: 10px; font-size: 16px; box-sizing: border-box; }
+        h1 { color: #ff6699; font-size: 1.5em; margin-bottom: 20px; }
+        input[type="text"] { width: 80%; padding: 10px; font-size: 16px; border: 1px solid #ffccdd; border-radius: 8px; margin-bottom: 10px; text-align: center; }
+        textarea { width: 100%; height: 220px; border: 1px solid #ffccdd; border-radius: 8px; padding: 10px; font-size: 16px; box-sizing: border-box; }
         button { background-color: #ff6699; color: white; border: none; border-radius: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; margin-top: 10px; }
         button:hover { background-color: #ff3377; }
-        button.login-btn { background-color: #4285F4; margin-top: 20px; }
-        button.logout-btn { background-color: #999; margin-top: 10px; }
-        #login-area { display: block; }
+        #notes-area { display: none; }
     </style>
 </head>
 <body>
@@ -28,16 +24,20 @@
 <div class="container">
     <h1>🌹 玫瑰雲端記事簿 🌹</h1>
 
-    <div id="auth-status">請點擊下方登入</div>
-
+    <!-- 暱稱輸入區 -->
     <div id="login-area">
-        <p>請登入您的 Google 帳號以開始使用。</p>
-        <button class="login-btn" id="loginButton">用 Google 登入</button>
+        <p>請輸入您的名字或暱稱：</p>
+        <input type="text" id="usernameInput" placeholder="例如：Momo">
+        <br>
+        <button id="enterButton">進入記事簿</button>
     </div>
 
+    <!-- 記事本區 -->
     <div id="notes-area">
+        <p id="welcomeMsg" style="color:#555; font-weight:bold;"></p>
         <textarea id="myNotes" placeholder="在這裡輸入你的記事...資料會自動同步到雲端 ☁️"></textarea>
-        <button class="logout-btn" id="logoutButton">登出</button>
+        <br>
+        <button id="switchUserButton" style="background-color:#999;">切換使用者</button>
     </div>
 </div>
 
@@ -56,58 +56,60 @@
 
     // 初始化 Firebase
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
     const database = firebase.database();
 
-    const authStatusEl = document.getElementById('auth-status');
-    const loginAreaEl = document.getElementById('login-area');
-    const notesAreaEl = document.getElementById('notes-area');
+    const loginArea = document.getElementById('login-area');
+    const notesArea = document.getElementById('notes-area');
+    const usernameInput = document.getElementById('usernameInput');
+    const enterButton = document.getElementById('enterButton');
+    const switchUserButton = document.getElementById('switchUserButton');
+    const welcomeMsg = document.getElementById('welcomeMsg');
     const myNotesTextArea = document.getElementById('myNotes');
-    const loginButton = document.getElementById('loginButton');
-    const logoutButton = document.getElementById('logoutButton');
 
-    // 監聽登入狀態
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            authStatusEl.innerHTML = `歡迎，<b>${user.displayName || '使用者'}</b>`;
-            loginAreaEl.style.display = 'none';
-            notesAreaEl.style.display = 'block';
+    let currentUser = localStorage.getItem('rose_notes_user');
 
-            const userNotesRef = database.ref('notes/' + user.uid);
+    if (currentUser) {
+        showNotes(currentUser);
+    }
 
-            userNotesRef.once('value').then(snapshot => {
-                const data = snapshot.val();
-                if (data && data.text) {
-                    myNotesTextArea.value = data.text;
-                }
-            });
-
-            myNotesTextArea.addEventListener('input', function() {
-                userNotesRef.set({ text: this.value });
-            });
-
-        } else {
-            authStatusEl.innerHTML = `未登入`;
-            loginAreaEl.style.display = 'block';
-            notesAreaEl.style.display = 'none';
-            myNotesTextArea.value = '';
+    enterButton.addEventListener('click', () => {
+        const name = usernameInput.value.trim();
+        if (!name) {
+            alert('請輸入名字或暱稱！');
+            return;
         }
+        localStorage.setItem('rose_notes_user', name);
+        showNotes(name);
     });
 
-    // 點擊登入（改用 Popup 視窗與錯誤捕捉）
-    loginButton.addEventListener('click', () => {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider).catch(error => {
-            alert("登入提示：" + error.message);
-        });
+    switchUserButton.addEventListener('click', () => {
+        localStorage.removeItem('rose_notes_user');
+        loginArea.style.display = 'block';
+        notesArea.style.display = 'none';
+        usernameInput.value = '';
     });
 
-    // 登出按鈕
-    logoutButton.addEventListener('click', () => {
-        auth.signOut().then(() => {
-            alert('您已成功登出');
+    function showNotes(username) {
+        currentUser = username;
+        welcomeMsg.innerText = `使用者：${username}`;
+        loginArea.style.display = 'none';
+        notesArea.style.display = 'block';
+
+        const userNotesRef = database.ref('user_notes/' + username);
+
+        userNotesRef.once('value').then(snapshot => {
+            const data = snapshot.val();
+            if (data && data.text) {
+                myNotesTextArea.value = data.text;
+            } else {
+                myNotesTextArea.value = '';
+            }
         });
-    });
+
+        myNotesTextArea.oninput = function() {
+            userNotesRef.set({ text: this.value });
+        };
+    }
 </script>
 
 </body>
