@@ -1,192 +1,384 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>玫瑰雲端記事簿</title>
-    <!-- 引入 Firebase JS SDK (Compat 版本) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <link rel="icon" type="image/png" href="icon.png">
-    <style>
-        * { box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-            background-color: #ffe6f2; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            padding: 20px;
-        }
-        .container { 
-            background-color: #ffffff; 
-            padding: 30px 20px; 
-            border-radius: 24px; 
-            box-shadow: 0 10px 25px rgba(255, 182, 193, 0.4); 
-            text-align: center; 
-            width: 100%; 
-            max-width: 380px; 
-        }
-        h1 { 
-            color: #d81b60; 
-            font-size: 1.5em; 
-            margin-top: 0;
-            margin-bottom: 20px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        p { color: #666; font-size: 0.95em; margin-bottom: 15px; }
-        input[type="text"] { 
-            width: 100%; 
-            padding: 12px; 
-            font-size: 16px; 
-            border: 2px solid #ffccd5; 
-            border-radius: 12px; 
-            margin-bottom: 15px; 
-            text-align: center; 
-            outline: none;
-            transition: border-color 0.3s;
-        }
-        input[type="text"]:focus {
-            border-color: #ff4d88;
-        }
-        textarea { 
-            width: 100%; 
-            height: 220px; 
-            border: 2px solid #ffccd5; 
-            border-radius: 16px; 
-            padding: 15px; 
-            font-size: 16px; 
-            outline: none;
-            resize: none;
-            color: #333;
-            background-color: #fffafc;
-            transition: border-color 0.3s;
-        }
-        textarea:focus {
-            border-color: #ff4d88;
-        }
-        button { 
-            background-color: #4285F4; 
-            color: white; 
-            border: none; 
-            border-radius: 25px; 
-            padding: 12px 24px; 
-            font-size: 16px; 
-            font-weight: 500;
-            cursor: pointer; 
-            width: 100%;
-            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
-            transition: background-color 0.2s, transform 0.1s;
-        }
-        button:active { transform: scale(0.98); }
-        button.switch-btn { 
-            background-color: #888888; 
-            margin-top: 15px; 
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        #notes-area { display: none; }
-        .user-tag {
-            font-size: 0.95em;
-            color: #555;
-            margin-bottom: 12px;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>玫瑰花語記事簿 RoseMemo</title>
+  <!-- 引入 Firebase JS SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 15px;
+      background: linear-gradient(rgba(255, 240, 245, 0.75), rgba(255, 228, 225, 0.75)),
+                  url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1000&q=80') center/cover fixed;
+      color: #4a3e3d;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.94);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(230, 115, 150, 0.25);
+      backdrop-filter: blur(8px);
+    }
+
+    h2 {
+      text-align: center;
+      color: #d65a8a;
+      margin-top: 0;
+      font-size: 1.4rem;
+    }
+
+    .user-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #ffe3ec;
+      padding: 8px 14px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      color: #8b4360;
+      font-weight: bold;
+    }
+
+    .form-group { margin-bottom: 15px; }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #8b4360;
+      font-size: 0.95rem;
+    }
+
+    input[type="text"], input[type="date"], input[type="time"], select {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px solid #f2b6c6;
+      border-radius: 12px;
+      outline: none;
+      background-color: #fffafc;
+      font-size: 1rem;
+    }
+
+    .checkbox-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .checkbox-label {
+      font-weight: normal;
+      background: #ffe3ec;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #f0789d, #d65a8a);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 25px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(214, 90, 138, 0.3);
+      margin-top: 10px;
+    }
+
+    .btn-secondary {
+      background: #ffffff;
+      color: #d65a8a;
+      border: 1px solid #d65a8a;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .memo-list {
+      margin-top: 25px;
+      border-top: 2px dashed #f2b6c6;
+      padding-top: 15px;
+    }
+
+    .memo-item {
+      background: #fff;
+      border-left: 4px solid #d65a8a;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      position: relative;
+    }
+
+    .memo-item.expired {
+      border-left-color: #a0a0a0;
+      background: #f9f9f9;
+      opacity: 0.7;
+    }
+
+    .delete-btn {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+
+    .filter-btn {
+      background: #ffe3ec;
+      border: 1px solid #f2b6c6;
+      color: #8b4360;
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    #login-area {
+      text-align: center;
+      padding: 20px 0;
+    }
+    #notes-area { display: none; }
+  </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🌹 玫瑰雲端記事簿 🌹</h1>
+  <h2>🌹 玫瑰花語記事簿</h2>
 
-    <!-- 進入區 -->
-    <div id="login-area">
-        <p>請輸入您的名字以開始使用：</p>
-        <input type="text" id="usernameInput" placeholder="請輸入名字（例如：Eddie）">
-        <button id="enterButton">進入記事簿</button>
+  <!-- 使用者登入/進入區 -->
+  <div id="login-area">
+    <p style="color: #666; font-size: 0.95em;">請輸入名字以載入雲端記事：</p>
+    <input type="text" id="usernameInput" placeholder="請輸入名字（例如：Eddie）" style="text-align: center; margin-bottom: 15px;">
+    <button class="btn-primary" onclick="loginUser()">進入記事簿</button>
+  </div>
+
+  <!-- 主記事區域 -->
+  <div id="notes-area">
+    <div class="user-bar">
+      <span id="welcomeMsg">使用者：</span>
+      <button class="btn-secondary" onclick="switchUser()">切換使用者</button>
     </div>
 
-    <!-- 記事本區 -->
-    <div id="notes-area">
-        <div class="user-tag" id="welcomeMsg">使用者：</div>
-        <textarea id="myNotes" placeholder="在這裡輸入你的記事...資料會自動同步到雲端 ☁️"></textarea>
-        <button class="switch-btn" id="switchUserButton">切換使用者</button>
+    <form id="memoForm">
+      <div class="form-group">
+        <label>📝 記事內容</label>
+        <input type="text" id="content" placeholder="例如：約會、紀念日、重要會議..." required>
+      </div>
+
+      <div class="form-group" style="display: flex; gap: 10px;">
+        <div style="flex: 1;">
+          <label>📅 日期</label>
+          <input type="date" id="date" required>
+        </div>
+        <div style="flex: 1;">
+          <label>⏰ 時間</label>
+          <input type="time" id="time" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>📍 地點</label>
+        <input type="text" id="location" placeholder="輸入地點或餐廳名稱">
+      </div>
+
+      <div class="form-group">
+        <label>🎵 音樂提醒點（可多選）</label>
+        <div class="checkbox-group">
+          <label class="checkbox-label"><input type="checkbox" name="remind" value="1天前"> 1天前</label>
+          <label class="checkbox-label"><input type="checkbox" name="remind" value="12小時前"> 12小時前</label>
+          <label class="checkbox-label"><input type="checkbox" name="remind" value="3小時前"> 3小時前</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>🔁 重複發生週期</label>
+        <select id="repeat">
+          <option value="不重複">單次（不重複）</option>
+          <option value="一個月">一個月</option>
+          <option value="三個月">三個月</option>
+          <option value="半年">半年</option>
+          <option value="一年">一年</option>
+        </select>
+      </div>
+
+      <button type="button" class="btn-primary" onclick="addMemo()">新增記事 🌹</button>
+    </form>
+
+    <div class="memo-list">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="color: #8b4360; font-size: 1.1rem; margin: 0;">📅 已儲存的記事</h3>
+        <button class="filter-btn" onclick="clearExpired()">🗑️ 一鍵清空過期</button>
+      </div>
+      <div id="memoContainer"></div>
     </div>
+  </div>
 </div>
 
 <script>
-    // Firebase 金鑰設定
-    const firebaseConfig = {
-        apiKey: "AIzaSyCqYrm1V9GeMiP7MJnXDCbuFWJ5BYM2DeE",
-        authDomain: "my-rose-notes.firebaseapp.com",
-        projectId: "my-rose-notes",
-        storageBucket: "my-rose-notes.firebasestorage.app",
-        messagingSenderId: "726041901274",
-        appId: "1:726041901274:web:905d250e675ab388bf8de3",
-        measurementId: "G-1925WS7KZC",
-        databaseURL: "https://my-rose-notes-default-rtdb.firebaseio.com"
-    };
+  // Firebase 設定
+  const firebaseConfig = {
+      apiKey: "AIzaSyCqYrm1V9GeMiP7MJnXDCbuFWJ5BYM2DeE",
+      authDomain: "my-rose-notes.firebaseapp.com",
+      projectId: "my-rose-notes",
+      storageBucket: "my-rose-notes.firebasestorage.app",
+      messagingSenderId: "726041901274",
+      appId: "1:726041901274:web:905d250e675ab388bf8de3",
+      measurementId: "G-1925WS7KZC",
+      databaseURL: "https://my-rose-notes-default-rtdb.firebaseio.com"
+  };
 
-    // 初始化 Firebase
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
 
-    const loginArea = document.getElementById('login-area');
-    const notesArea = document.getElementById('notes-area');
-    const usernameInput = document.getElementById('usernameInput');
-    const enterButton = document.getElementById('enterButton');
-    const switchUserButton = document.getElementById('switchUserButton');
-    const welcomeMsg = document.getElementById('welcomeMsg');
-    const myNotesTextArea = document.getElementById('myNotes');
+  let currentUser = localStorage.getItem('rose_notes_user');
+  let currentMemos = [];
 
-    let currentUser = localStorage.getItem('rose_notes_user');
+  if (currentUser) {
+    showNotesArea(currentUser);
+  }
 
-    if (currentUser) {
-        showNotes(currentUser);
+  function loginUser() {
+    const name = document.getElementById('usernameInput').value.trim();
+    if (!name) {
+      alert('請輸入名字！');
+      return;
+    }
+    localStorage.setItem('rose_notes_user', name);
+    showNotesArea(name);
+  }
+
+  function switchUser() {
+    localStorage.removeItem('rose_notes_user');
+    document.getElementById('login-area').style.display = 'block';
+    document.getElementById('notes-area').style.display = 'none';
+    document.getElementById('usernameInput').value = '';
+  }
+
+  function showNotesArea(username) {
+    currentUser = username;
+    document.getElementById('welcomeMsg').innerText = `使用者：${username}`;
+    document.getElementById('login-area').style.display = 'none';
+    document.getElementById('notes-area').style.display = 'block';
+    document.getElementById('date').valueAsDate = new Date();
+    
+    // 監聽雲端資料
+    database.ref('user_structured_notes/' + username).on('value', snapshot => {
+      const data = snapshot.val();
+      currentMemos = data ? Object.values(data) : [];
+      renderMemos();
+    });
+  }
+
+  function renderMemos() {
+    const container = document.getElementById('memoContainer');
+    const now = new Date();
+
+    if (currentMemos.length === 0) {
+      container.innerHTML = '<p style="color: #a07080; font-size: 0.9rem; text-align: center;">尚無記事項目</p>';
+      return;
     }
 
-    enterButton.addEventListener('click', () => {
-        const name = usernameInput.value.trim();
-        if (!name) {
-            alert('請輸入名字！');
-            return;
-        }
-        localStorage.setItem('rose_notes_user', name);
-        showNotes(name);
-    });
+    // 依據時間排序
+    currentMemos.sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
 
-    switchUserButton.addEventListener('click', () => {
-        localStorage.removeItem('rose_notes_user');
-        loginArea.style.display = 'block';
-        notesArea.style.display = 'none';
-        usernameInput.value = '';
-    });
+    container.innerHTML = currentMemos.map(m => {
+      const eventTime = new Date(`${m.date}T${m.time}`);
+      const isExpired = m.repeat === '不重複' && eventTime < now;
 
-    function showNotes(username) {
-        currentUser = username;
-        welcomeMsg.innerText = `使用者：${username}`;
-        loginArea.style.display = 'none';
-        notesArea.style.display = 'block';
+      return `
+        <div class="memo-item ${isExpired ? 'expired' : ''}">
+          <button class="delete-btn" onclick="deleteMemo('${m.id}')">刪除</button>
+          <div style="font-weight: bold; color: ${isExpired ? '#777' : '#d65a8a'}; padding-right: 45px;">
+            ${isExpired ? '<span style="color:#ff4d4d;">[已過期] </span>' : ''}${m.content}
+          </div>
+          <div style="font-size: 0.85rem; color: #666; margin-top: 6px; line-height: 1.4;">
+            📍 地點: ${m.location || '無'}<br>
+            ⏰ 時間: ${m.date} ${m.time}<br>
+            🎵 提醒: ${m.reminds && m.reminds.length > 0 ? m.reminds.join(', ') : '無'}<br>
+            🔁 週期: ${m.repeat}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 
-        const userNotesRef = database.ref('user_notes/' + username);
-
-        userNotesRef.once('value').then(snapshot => {
-            const data = snapshot.val();
-            if (data && data.text) {
-                myNotesTextArea.value = data.text;
-            } else {
-                myNotesTextArea.value = '';
-            }
-        });
-
-        myNotesTextArea.oninput = function() {
-            userNotesRef.set({ text: this.value });
-        };
+  function addMemo() {
+    const content = document.getElementById('content').value.trim();
+    const date = document.getElementById('date').value;
+    const time = document.getElementById('time').value;
+    const location = document.getElementById('location').value.trim();
+    const repeat = document.getElementById('repeat').value;
+    
+    if (!content || !date || !time) {
+      alert('請填寫記事內容、日期與時間！');
+      return;
     }
+
+    const reminds = Array.from(document.querySelectorAll('input[name="remind"]:checked')).map(cb => cb.value);
+    const memoId = Date.now().toString();
+
+    const newMemo = { id: memoId, content, date, time, location, reminds, repeat };
+
+    // 寫入 Firebase 雲端
+    database.ref(`user_structured_notes/${currentUser}/${memoId}`).set(newMemo).then(() => {
+      document.getElementById('content').value = '';
+      document.getElementById('location').value = '';
+      document.querySelectorAll('input[name="remind"]').forEach(cb => cb.checked = false);
+      alert('🌹 記事已同步儲存至雲端！');
+    });
+  }
+
+  function deleteMemo(id) {
+    if (confirm('確定要刪除這筆記事嗎？')) {
+      database.ref(`user_structured_notes/${currentUser}/${id}`).remove();
+    }
+  }
+
+  function clearExpired() {
+    const now = new Date();
+    let deleteCount = 0;
+
+    currentMemos.forEach(m => {
+      const eventTime = new Date(`${m.date}T${m.time}`);
+      if (m.repeat === '不重複' && eventTime < now) {
+        database.ref(`user_structured_notes/${currentUser}/${m.id}`).remove();
+        deleteCount++;
+      }
+    });
+
+    if (deleteCount > 0) {
+      alert(`已為您清空 ${deleteCount} 筆過期記事！`);
+    } else {
+      alert('目前沒有已過期的單次記事。');
+    }
+  }
 </script>
 
 </body>
