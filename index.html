@@ -1,408 +1,112 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>玫瑰花語記事簿 RoseMemo</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0;
-      padding: 15px;
-      background: linear-gradient(rgba(255, 240, 245, 0.7), rgba(255, 228, 225, 0.7)),
-                  url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1000&q=80') center/cover fixed;
-      color: #4a3e3d;
-      min-height: 100vh;
-    }
-
-    .container {
-      max-width: 480px;
-      margin: 0 auto;
-      background: rgba(255, 255, 255, 0.92);
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 10px 25px rgba(230, 115, 150, 0.25);
-      backdrop-filter: blur(8px);
-    }
-
-    h2 {
-      text-align: center;
-      color: #d65a8a;
-      margin-top: 0;
-      font-size: 1.4rem;
-    }
-
-    .form-group { margin-bottom: 15px; }
-
-    label {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 6px;
-      color: #8b4360;
-      font-size: 0.95rem;
-    }
-
-    input[type="text"], input[type="date"], input[type="time"], select {
-      width: 100%;
-      padding: 12px;
-      border: 1.5px solid #f2b6c6;
-      border-radius: 12px;
-      outline: none;
-      background-color: #fffafc;
-      font-size: 1rem;
-    }
-
-    .checkbox-group {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .checkbox-label {
-      font-weight: normal;
-      background: #ffe3ec;
-      padding: 8px 12px;
-      border-radius: 12px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .btn-primary {
-      width: 100%;
-      background: linear-gradient(135deg, #f0789d, #d65a8a);
-      color: white;
-      border: none;
-      padding: 14px;
-      font-size: 1rem;
-      font-weight: bold;
-      border-radius: 25px;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgba(214, 90, 138, 0.3);
-      margin-top: 10px;
-    }
-
-    .btn-secondary {
-      width: 100%;
-      background: #ffffff;
-      color: #d65a8a;
-      border: 1.5px solid #d65a8a;
-      padding: 12px;
-      font-size: 0.95rem;
-      font-weight: bold;
-      border-radius: 25px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    .memo-list {
-      margin-top: 25px;
-      border-top: 2px dashed #f2b6c6;
-      padding-top: 15px;
-    }
-
-    .memo-item {
-      background: #fff;
-      border-left: 4px solid #d65a8a;
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-      position: relative;
-    }
-
-    .memo-item.expired {
-      border-left-color: #a0a0a0;
-      background: #f9f9f9;
-      opacity: 0.7;
-    }
-
-    .delete-btn {
-      position: absolute;
-      right: 10px;
-      top: 10px;
-      background: #ff4d4d;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 4px 8px;
-      font-size: 0.75rem;
-      cursor: pointer;
-    }
-
-    .filter-btn {
-      background: #ffe3ec;
-      border: 1px solid #f2b6c6;
-      color: #8b4360;
-      padding: 5px 10px;
-      border-radius: 10px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      margin-bottom: 10px;
-    }
-
-    .repeat-tag {
-      background-color: #e8f5e9;
-      color: #2e7d32;
-      padding: 2px 6px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      margin-left: 5px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>玫瑰雲端記事簿</title>
+    <!-- 引入 Firebase JS SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <link rel="icon" type="image/png" href="icon.png">
+    <style>
+        body { font-family: sans-serif; background-color: #ffe0f0; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .container { background-color: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; width: 90%; max-width: 400px; }
+        h1 { color: #ff6699; font-size: 1.5em; }
+        #auth-status { font-size: 0.9em; margin-bottom: 10px; color: #555; }
+        #notes-area { display: none; }
+        textarea { width: 100%; height: 200px; border: 1px solid #ffccdd; border-radius: 8px; padding: 10px; font-size: 16px; box-sizing: border-box; }
+        button { background-color: #ff6699; color: white; border: none; border-radius: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        button:hover { background-color: #ff3377; }
+        button.login-btn { background-color: #4285F4; margin-top: 20px; }
+        button.logout-btn { background-color: #999; margin-top: 10px; }
+        #login-area { display: block; }
+    </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>🌹 玫瑰花語記事簿</h2>
+    <h1>🌹 玫瑰雲端記事簿 🌹</h1>
 
-  <form id="memoForm">
-    <div class="form-group">
-      <label>📝 記事內容</label>
-      <input type="text" id="content" placeholder="例如：約會、紀念日、繳費..." required>
+    <div id="auth-status">載入中...</div>
+
+    <div id="login-area">
+        <p>請登入您的 Google 帳號以開始使用。</p>
+        <button class="login-btn" id="loginButton">用 Google 登入</button>
     </div>
 
-    <div class="form-group" style="display: flex; gap: 10px;">
-      <div style="flex: 1;">
-        <label>📅 日期</label>
-        <input type="date" id="date" required>
-      </div>
-      <div style="flex: 1;">
-        <label>⏰ 時間</label>
-        <input type="time" id="time" required>
-      </div>
+    <div id="notes-area">
+        <textarea id="myNotes" placeholder="在這裡輸入你的記事...資料會自動同步到雲端 ☁️"></textarea>
+        <button class="logout-btn" id="logoutButton">登出</button>
     </div>
-
-    <div class="form-group">
-      <label>📍 地點</label>
-      <input type="text" id="location" placeholder="輸入地點或餐廳名稱">
-    </div>
-
-    <div class="form-group">
-      <label>🎵 音樂提醒點（可多選）</label>
-      <div class="checkbox-group">
-        <label class="checkbox-label"><input type="checkbox" name="remind" value="1天前"> 1天前</label>
-        <label class="checkbox-label"><input type="checkbox" name="remind" value="12小時前"> 12小時前</label>
-        <label class="checkbox-label"><input type="checkbox" name="remind" value="3小時前"> 3小時前</label>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label>🔁 重複發生週期</label>
-      <select id="repeat">
-        <option value="不重複">單次（不重複）</option>
-        <option value="一個月">一個月</option>
-        <option value="三個月">三個月</option>
-        <option value="一年">一年</option>
-      </select>
-    </div>
-
-    <button type="button" class="btn-primary" onclick="addMemo()">新增記事 🌹</button>
-    <button type="button" class="btn-secondary" onclick="shareApp()">📤 單獨分享給其他人用</button>
-  </form>
-
-  <div class="memo-list">
-    <div style="display: flex; justify-content: space-between; align- items: center;">
-      <h3 style="color: #8b4360; font-size: 1.1rem; margin: 0;">📅 預計發生的記事 (由近到遠)</h3>
-      <button class="filter-btn" onclick="clearExpired()">🗑️ 清空過期</button>
-    </div>
-    <div id="memoContainer" style="margin-top: 10px;"></div>
-  </div>
 </div>
 
 <script>
-  // 音樂提醒聲音
-  function playAlarmSound() {
-    try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const playTone = (freq, startTime, duration) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, startTime);
-        gain.gain.setValueAtTime(0.1, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + duration);
-      };
+    // 你的 Firebase 雲端金鑰設定
+    const firebaseConfig = {
+        apiKey: "AIzaSyCqYrm1V9GeMiP7MJnXDCbuFWJ5BYM2DeE",
+        authDomain: "my-rose-notes.firebaseapp.com",
+        projectId: "my-rose-notes",
+        storageBucket: "my-rose-notes.firebasestorage.app",
+        messagingSenderId: "726041901274",
+        appId: "1:726041901274:web:905d250e675ab388bf8de3",
+        measurementId: "G-1925WS7KZC",
+        databaseURL: "https://my-rose-notes-default-rtdb.firebaseio.com"
+    };
 
-      const now = audioCtx.currentTime;
-      const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 659.25, 523.25];
-      notes.forEach((freq, index) => {
-        playTone(freq, now + (index * 0.4), 0.35);
-        playTone(freq * 1.2, now + (index * 0.4) + 0.1, 0.35);
-      });
-    } catch(e) {
-      console.log('無法播放聲音:', e);
-    }
-  }
+    // 初始化 Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
 
-  // 自動推算下一期的日期 (格式為 YYYY-MM-DD)
-  function getNextDate(dateStr, repeatType) {
-    const d = new Date(dateStr + 'T00:00:00');
-    if (repeatType === '一個月') {
-      d.setMonth(d.getMonth() + 1);
-    } else if (repeatType === '三個月') {
-      d.setMonth(d.getMonth() + 3);
-    } else if (repeatType === '一年') {
-      d.setFullYear(d.getFullYear() + 1);
-    }
-    
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
+    const authStatusEl = document.getElementById('auth-status');
+    const loginAreaEl = document.getElementById('login-area');
+    const notesAreaEl = document.getElementById('notes-area');
+    const myNotesTextArea = document.getElementById('myNotes');
+    const loginButton = document.getElementById('loginButton');
+    const logoutButton = document.getElementById('logoutButton');
 
-  // 檢查並更新過期的定期事件
-  function updateRecurringMemos() {
-    let memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
-    const now = new Date();
-    let hasUpdated = false;
+    // 監聽登入狀態
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            authStatusEl.innerHTML = `歡迎，<b>${user.displayName || '使用者'}</b> (Google 登入中)`;
+            loginAreaEl.style.display = 'none';
+            notesAreaEl.style.display = 'block';
 
-    memos = memos.map(m => {
-      if (m.repeat !== '不重複') {
-        let eventTime = new Date(`${m.date}T${m.time}`);
-        // 若定期事件的時間已經過去，自動推算直到日期大於現在
-        while (eventTime < now) {
-          m.date = getNextDate(m.date, m.repeat);
-          m.alerted = false; // 重設提醒狀態
-          eventTime = new Date(`${m.date}T${m.time}`);
-          hasUpdated = true;
+            const userNotesRef = database.ref('notes/' + user.uid);
+
+            userNotesRef.once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (data && data.text) {
+                    myNotesTextArea.value = data.text;
+                }
+            });
+
+            myNotesTextArea.addEventListener('input', function() {
+                userNotesRef.set({ text: this.value });
+            });
+
+        } else {
+            authStatusEl.innerHTML = `未登入`;
+            loginAreaEl.style.display = 'block';
+            notesAreaEl.style.display = 'none';
+            myNotesTextArea.value = '';
         }
-      }
-      return m;
     });
 
-    if (hasUpdated) {
-      localStorage.setItem('roseMemos', JSON.stringify(memos));
-    }
-  }
-
-  function loadMemos() {
-    // 載入前先執行定期事件的自動更正
-    updateRecurringMemos();
-
-    let memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
-    const container = document.getElementById('memoContainer');
-    const now = new Date();
-
-    if (memos.length === 0) {
-      container.innerHTML = '<p style="color: #a07080; font-size: 0.9rem; text-align: center;">尚無記事項目</p>';
-      return;
-    }
-
-    // 由近到遠排序 (時間最先發生的置頂)
-    memos.sort((a, b) => {
-      const timeA = new Date(`${a.date}T${a.time}`);
-      const timeB = new Date(`${b.date}T${b.time}`);
-      return timeA - timeB;
+    // 登入按鈕
+    loginButton.addEventListener('click', () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithRedirect(provider);
     });
 
-    container.innerHTML = memos.map((m, index) => {
-      const eventTime = new Date(`${m.date}T${m.time}`);
-      const isExpired = m.repeat === '不重複' && eventTime < now;
-
-      return `
-        <div class="memo-item ${isExpired ? 'expired' : ''}">
-          <button class="delete-btn" onclick="deleteMemo(${index})">刪除</button>
-          <div style="font-weight: bold; color: ${isExpired ? '#777' : '#d65a8a'};">
-            ${isExpired ? '<span style="color:#ff4d4d;">[已過期] </span>' : '⏰ '}
-            ${m.content}
-            ${m.repeat !== '不重複' ? `<span class="repeat-tag">🔁 每${m.repeat}自動更新</span>` : ''}
-          </div>
-          <div style="font-size: 0.85rem; color: #666; margin-top: 4px;">
-            📍 地點: ${m.location || '無'}<br>
-            📅 下次時間: <b>${m.date} ${m.time}</b><br>
-            🎵 提醒: ${m.reminds.join(', ') || '無'}<br>
-            🔁 週期: ${m.repeat}
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function addMemo() {
-    const content = document.getElementById('content').value;
-    const date = document.getElementById('date').value;
-    const time = document.getElementById('time').value;
-    const location = document.getElementById('location').value;
-    const repeat = document.getElementById('repeat').value;
-    
-    if (!content || !date || !time) {
-      alert('請填寫記事內容、日期與時間！');
-      return;
-    }
-
-    const reminds = Array.from(document.querySelectorAll('input[name="remind"]:checked')).map(cb => cb.value);
-
-    const newMemo = { content, date, time, location, reminds, repeat, alerted: false };
-    const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
-    memos.push(newMemo);
-    localStorage.setItem('roseMemos', JSON.stringify(memos));
-
-    document.getElementById('content').value = '';
-    document.getElementById('location').value = '';
-    loadMemos();
-    
-    playAlarmSound();
-    alert('🌹 記事已成功儲存！若有設定週期，到期後會自動推算下一期。');
-  }
-
-  function deleteMemo(index) {
-    if (confirm('確定要刪除這筆記事嗎？')) {
-      let memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
-      memos.sort((a, b) => new Date(`${a.date}T${a.time}`) - new Date(`${b.date}T${b.time}`));
-      memos.splice(index, 1);
-      localStorage.setItem('roseMemos', JSON.stringify(memos));
-      loadMemos();
-    }
-  }
-
-  function clearExpired() {
-    let memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
-    const now = new Date();
-    const activeMemos = memos.filter(m => {
-      const eventTime = new Date(`${m.date}T${m.time}`);
-      return m.repeat !== '不重複' || eventTime >= now;
+    // 登出按鈕
+    logoutButton.addEventListener('click', () => {
+        auth.signOut().then(() => {
+            alert('您已成功登出');
+        });
     });
-
-    localStorage.setItem('roseMemos', JSON.stringify(activeMemos));
-    loadMemos();
-    alert('已清空所有過期的單次記事！');
-  }
-
-  // 自動背景檢查
-  setInterval(() => {
-    loadMemos(); // 隨時更新並自動跳到下一期
-
-    const memos = JSON.parse(localStorage.getItem('roseMemos') || '[]');
-    const now = new Date();
-
-    memos.forEach(m => {
-      const eventTime = new Date(`${m.date}T${m.time}`);
-      if (Math.abs(now - eventTime) < 30000 && !m.alerted) {
-        playAlarmSound();
-        alert(`⏰【提醒時間到】\n內容：${m.content}\n地點：${m.location || '無'}`);
-        m.alerted = true;
-        localStorage.setItem('roseMemos', JSON.stringify(memos));
-      }
-    });
-  }, 10000);
-
-  function shareApp() {
-    alert('您可以複製專屬網址發送給其他人獨立使用！');
-  }
-
-  document.getElementById('date').valueAsDate = new Date();
-  loadMemos();
 </script>
 
 </body>
-</html>
-
+</html>1
