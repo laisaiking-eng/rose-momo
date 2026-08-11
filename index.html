@@ -305,8 +305,19 @@
       return;
     }
 
-    // 依據時間排序
-    currentMemos.sort((a, b) => new Date(`${b.date}T${b.time}`) - new Date(`${a.date}T${a.time}`));
+    // 依據時間排序：最近發生的排最前面，過期的排最後面
+    currentMemos.sort((a, b) => {
+      const timeA = new Date(`${a.date}T${a.time}`);
+      const timeB = new Date(`${b.date}T${b.time}`);
+      
+      const isExpiredA = a.repeat === '不重複' && timeA < now;
+      const isExpiredB = b.repeat === '不重複' && timeB < now;
+
+      if (isExpiredA !== isExpiredB) {
+        return isExpiredA ? 1 : -1; // 未過期優先，過期的往後排
+      }
+      return timeA - timeB; // 時間越近越靠前
+    });
 
     container.innerHTML = currentMemos.map(m => {
       const eventTime = new Date(`${m.date}T${m.time}`);
