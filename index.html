@@ -292,7 +292,49 @@
     database.ref('user_structured_notes/' + username).on('value', snapshot => {
       const data = snapshot.val();
       currentMemos = data ? Object.values(data) : [];
+      
+      // 自動檢查並更新已經過期的週期性記事
+      checkAndAdvanceRepeats();
       renderMemos();
+    });
+  }
+
+  // 自動推進重複週期的邏輯
+  function checkAndAdvanceRepeats() {
+    const now = new Date();
+
+    currentMemos.forEach(m => {
+      if (m.repeat && m.repeat !== '不重複') {
+        let eventTime = new Date(`${m.date}T${m.time}`);
+
+        // 如果目前時間已經超過了記事設定的時間，就推進週期
+        if (eventTime < now) {
+          let updatedDate = new Date(eventTime);
+
+          // 循環加到比當前時間晚為止
+          while (updatedDate < now) {
+            if (m.repeat === '一個月') {
+              updatedDate.setMonth(updatedDate.getMonth() + 1);
+            } else if (m.repeat === '三個月') {
+              updatedDate.setMonth(updatedDate.getMonth() + 3);
+            } else if (m.repeat === '半年') {
+              updatedDate.setMonth(updatedDate.getMonth() + 6);
+            } else if (m.repeat === '一年') {
+              updatedDate.setFullYear(updatedDate.getFullYear() + 1);
+            }
+          }
+
+          // 格式化新日期為 YYYY-MM-DD
+          const year = updatedDate.getFullYear();
+          const month = String(updatedDate.getMonth() + 1).padStart(2, '0');
+          const day = String(updatedDate.getDate()).padStart(2, '0');
+          const newDateStr = `${year}-${month}-${day}`;
+
+          // 更新記憶體與 Firebase 雲端
+          m.date = newDateStr;
+          database.ref(`user_structured_notes/${currentUser}/${m.id}/date`).set(newDateStr);
+        }
+      }
     });
   }
 
@@ -314,9 +356,9 @@
       const isExpiredB = b.repeat === '不重複' && timeB < now;
 
       if (isExpiredA !== isExpiredB) {
-        return isExpiredA ? 1 : -1; // 未過期優先，過期的往後排
+        return isExpiredA ? 1 : -1;
       }
-      return timeA - timeB; // 時間越近越靠前
+      return timeA - timeB;
     });
 
     container.innerHTML = currentMemos.map(m => {
